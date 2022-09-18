@@ -101,3 +101,5 @@ h. Find a month for each year in which maximum number of quantities were sold
 Ans: select s1.year_id, s1.month_id, max(s1.quantityordered) as max_order from
 sales_order_orc s1 
 group by s1.year_id, s1.month_id; 
+
+# The last answer is not accurate. Need help to find answer.

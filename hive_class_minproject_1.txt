@@ -1,0 +1,120 @@
+1. Create a schema based on the given dataset
+Ans: 
+create table agent_login_tbl
+    > (
+    > sl_no int,
+    > agent_name string,
+    > date string,
+    > login_time string,
+    > logout_time string,
+    > duration string
+    ) row format delimited fields terminated by ',';
+
+create table agent_performance_tbl
+    > (
+    > sl_no int,
+    > date string,
+    > agent_name string,
+    > total_chats int,
+    > avg_response_time string,
+    > avg_resolution_time string,
+    > avg_rating double,
+    > total_feedback int
+    > ) row format delimited fields terminated by ',';
+
+2. Dump the data inside the hdfs in the given schema location.
+Ans:
+load data local inpath 'file:///home/cloudera/aneesh/AgentLogingReport.csv' into table agent_login_tbl;
+load data local inpath 'file:///home/cloudera/aneesh/AgentPerformance.csv' into table agent_performance_tbl;
+
+3. List of all agents' names. 
+Ans: select distinct agent_name as Name from agent_login_tbl;
+
+4. Find out agent average rating.
+Ans:   select p.agent_name, sum(p.avg_rating)/count(p.date) as Average_Rating from agent_performance_tbl p group by p.agent_name;
+
+
+5. Total working days for each agents 
+
+Ans: select l.agent_name, count(l.date) as Total_days from agent_login_tbl l group by l.agent_name;
+
+6. Total query that each agent have taken 
+
+Ans: select p.agent_name, sum(p.total_chats) as Total_Chats from agent_performance_tbl p group by p.agent_name;
+
+7. Total Feedback that each agent have received 
+Ans: select p.agent_name, sum(p.total_feedback) as Total_Feedbacks from agent_performance_tbl p group by p.agent_name;
+
+8. Agent name who have average rating between 3.5 to 4 
+
+Ans: select * from (select p.agent_name, sum(p.avg_rating)/count(p.date) as Average_Rating from agent_performance_tbl p  group by p.agent_name) t1 where Average_Rating between 3.5 and 4;
+
+
+9. Agent name who have rating less than 3.5 
+
+Ans: select agent_name, avg_rating as rating from agent_performance_tbl where avg_rating <3.5;
+
+10. Agent name who have rating more than 4.5 
+
+Ans: select agent_name, avg_rating as rating from agent_performance_tbl where avg_rating >4.5;
+
+11. How many feedback agents have received more than 4.5 average
+
+Ans: select sum(feedback) from  (select total_feedback as feedback from agent_performance_tbl where avg_rating > 4.5) t;
+
+12. average weekly response time for each agent 
+
+Ans: select  agent_name, from_unixtime( cast(sum(unix_timestamp(avg_response_time,'HH:mm:ss'))/7 as bigint),'HH:mm:ss') as Avg_weekly_response_time from agent_performance_tbl group by agent_name;
+
+13. average weekly resolution time for each agents 
+
+Ans: select  agent_name, from_unixtime( cast(sum(unix_timestamp(avg_resolution_time,'HH:mm:ss'))/7 as bigint),'HH:mm:ss') as Avg_weekly_resolution_time from agent_performance_tbl group by agent_name;
+
+14. Find the number of chat on which they have received a feedback 
+Ans: select sum(total_chats) from agent_performance_tbl where total_feedback > 0;
+
+15. Total contribution hour for each and every agents weekly basis 
+Ans: select agent_name, from_unixtime(cast(sum(unix_timestamp(duration,'HH:mm:ss'))/7 as bigint),'HH') as average_weekly_hours from agent_login_tbl group by agent_name;
+
+16. Perform inner join, left join and right join based on the agent column and after joining the table export that data into your local system.
+Ans: 
+a) hive -e 'select * from hive_mini_1.agent_login_tbl l inner join hive_mini_1.agent_performance_tbl p on l.agent_name = p.agent_name' | sed 's/[\t]/,/g' > /home/cloudera/aneesh/innerjoin_res.csv
+b) hive -e 'select * from hive_mini_1.agent_login_tbl l left join hive_mini_1.agent_performance_tbl p on l.agent_name = p.agent_name' | sed 's/[\t]/,/g' > /home/cloudera/aneesh/leftjoin_res.csv
+c) hive -e 'select * from hive_mini_1.agent_login_tbl l right join hive_mini_1.agent_performance_tbl p on l.agent_name = p.agent_name' | sed 's/[\t]/,/g' > /home/cloudera/aneesh/rightjoin_res.csv
+
+
+17. Perform partitioning on top of the agent column and then on top of that perform bucketing for each partitioning.
+Ans:
+a)set hive.exec.dynamic.partition.mode=nonstrict;
+b)set hive.enforce.bucketing=true;
+
+c)create table agent_login_part_buck_tbl
+    >      (
+    >      sl_no int,
+    >      date string,
+    >      login_time string,
+    >      logout_time string,
+    >      duration string
+    >     ) partitioned by (agent_name string)
+    >     clustered by (sl_no)
+    >     sorted by (sl_no)
+    >     into 3 buckets;
+
+ d)insert overwrite table agent_login_part_buck_tbl partition(agent_name) select sl_no,date,login_time,logout_time,duration,agent_name from agent_login_tbl;
+   
+e)create table agent_performance_part_buck_tbl
+     (
+     sl_no int,
+    date string,
+    total_chats int,
+     avg_response_time string,
+     avg_resolution_time string,
+     avg_rating double,
+     total_feedback int
+     ) partitioned by(agent_name string)
+clustered by (sl_no)
+sorted by (sl_no)
+into 3 buckets;
+
+e)insert overwrite table agent_performance_part_buck_tbl partition(agent_name) select sl_no,date,total_chats,avg_response_time,avg_resolution_time,avg_rating,total_feedback,agent_name from agent_performance_tbl;
+

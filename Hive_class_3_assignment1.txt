@@ -98,7 +98,5 @@ Ans: select city, qtr_id, sum(sales) as Total_Sales from sales_order_orc group b
 
 
 h. Find a month for each year in which maximum number of quantities were sold
-Ans: select year,max(max_order)from (select s1.year_id as year, s1.month_id, max(s1.quantityordered) as max_order from sales_order_orc s1 group by s1.year_id, s1.month_id) t1 group by year;
- 
+Ans: select year,month,max_order from (select year,month,max_order, RANK() OVER(PARTITION BY year order by max_order desc) as rank_id from (select s1.year_id as year, s1.month_id as month, max(s1.quantityordered) as max_order from sales_order_orc s1 group by s1.year_id, s1.month_id) t1 ) t2 where t2.rank_id = 1;
 
-# The last answer is not accurate. Need help to find answer.

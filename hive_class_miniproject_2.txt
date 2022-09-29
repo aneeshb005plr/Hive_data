@@ -136,6 +136,27 @@ group by violation_code;
 
 
 5.) Find out the properties of parking violations across different times of the day: The Violation Time field is specified in a strange format. Find a way to make this into a time attribute that you can use to divide into groups.
+Ans: select violation_time_new,count(violation_code_new) as count_of_violation from (select  transform(violation_time, violation_code) using "python split_time.py" as(violation_time_new string, violation_code_new int) from parking_violation_2017_orc) t1 group by violation_time_new limit 5;
+
+UDF:split_time.py
+import sys
+def split_time(time):
+    hr = time[0:2]
+    min = time[2:4]
+    period = time[4:]
+    period = 'AM' if period == 'A' else 'PM'
+    time = hr+':'+min+':'+period
+    return time
+for line in sys.stdin:
+    line = line.strip("\n\r")
+    time, violation_code = line.split("\t")
+    time = split_time(time)
+    result = '\t'.join([time, violation_code])
+    print(result)
+
+
+
+
 6.) Divide 24 hours into 6 equal discrete bins of time. The intervals you choose are at your discretion. For each of these groups, find the 3 most commonly occurring violations
 7.) Now, try another direction. For the 3 most commonly occurring violation codes, find the most common times of day (in terms of the bins from the previous part)
 8.) Let’s try and find some seasonality in this data

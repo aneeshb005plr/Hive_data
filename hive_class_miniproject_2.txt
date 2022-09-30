@@ -139,25 +139,14 @@ group by violation_code;
 Ans: select violation_time_new,count(violation_code_new) as count_of_violation from (select  transform(violation_time, violation_code) using "python split_time.py" as(violation_time_new string, violation_code_new int) from parking_violation_2017_orc) t1 group by violation_time_new limit 5;
 
 UDF:split_time.py
-import sys
-def split_time(time):
-    hr = time[0:2]
-    min = time[2:4]
-    period = time[4:]
-    period = 'AM' if period == 'A' else 'PM'
-    time = hr+':'+min+':'+period
-    return time
-for line in sys.stdin:
-    line = line.strip("\n\r")
-    time, violation_code = line.split("\t")
-    time = split_time(time)
-    result = '\t'.join([time, violation_code])
-    print(result)
+https://github.com/aneeshb005plr/Hive_data/blob/master/split_time.py
 
 
 
 
 6.) Divide 24 hours into 6 equal discrete bins of time. The intervals you choose are at your discretion. For each of these groups, find the 3 most commonly occurring violations
+UDF:assign_interval.py
+https://github.com/aneeshb005plr/Hive_data/blob/master/assign_interval.py
 Ans: select interval, violation_code_new, rnk from (select interval, violation_code_new, rank() over(partition by interval order by total_count) as rnk from (select interval, violation_code_new, count(violation_code_new) as total_count from (select  transform(violation_time, violation_code) using "python assign_interval.py" as(violation_time_new string,violation_code_new int, interval int) from  parking_violation_2017_orc) t1 group by interval, violation_code_new)t2)t3 where rnk in(1,2,3);
 
 7.) Now, try another direction. For the 3 most commonly occurring violation codes, find the most common times of day (in terms of the bins from the previous part)

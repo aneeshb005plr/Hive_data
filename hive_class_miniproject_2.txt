@@ -158,6 +158,8 @@ for line in sys.stdin:
 
 
 6.) Divide 24 hours into 6 equal discrete bins of time. The intervals you choose are at your discretion. For each of these groups, find the 3 most commonly occurring violations
+Ans: select interval, violation_code_new, rnk from (select interval, violation_code_new, rank() over(partition by interval order by total_count) as rnk from (select interval, violation_code_new, count(violation_code_new) as total_count from (select  transform(violation_time, violation_code) using "python assign_interval.py" as(violation_time_new string,violation_code_new int, interval int) from  parking_violation_2017_orc) t1 group by interval, violation_code_new)t2)t3 where rnk in(1,2,3);
+
 7.) Now, try another direction. For the 3 most commonly occurring violation codes, find the most common times of day (in terms of the bins from the previous part)
 8.) Let’s try and find some seasonality in this data
       a.) First, divide the year into some number of seasons, and find frequencies of tickets for each season. (Hint: A quick Google search reveals the following seasons in NYC: Spring(March, April, March); Summer(June, July, August); Fall(September, October, November); Winter(December, January, February))
